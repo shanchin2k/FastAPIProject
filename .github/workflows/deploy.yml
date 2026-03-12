@@ -31,8 +31,8 @@ jobs:
         id: auth
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: "projects/123456789/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
-          service_account: "github-deployer@your-gcp-project-id.iam.gserviceaccount.com"
+          workload_identity_provider: "projects/34545873958/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
+          service_account: "github-deployer@yapi-deployment-489815.iam.gserviceaccount.com"
 
       # Set up gcloud CLI
       - name: Set up Cloud SDK
