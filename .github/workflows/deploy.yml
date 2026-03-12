@@ -1,0 +1,25 @@
+name: Build & Deploy
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy FastAPI App
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }} # IP address of the server you wish to ssh into
+          key: ${{ secrets.SSH_KEY }} # Private or public key of the server
+          username: ${{ secrets.SSH_USERNAME }} # User of the server you want to ssh into
+          # Ensure you replace {YOUR_REPOSITORY_SSH_URL} with your repository's ssh url
+          script: |
+            mkdir -p github-pipeline
+            cd github-pipeline
+            git clone {YOUR_REPOSITORY_SSH_URL} || true
+            cd fastapi-deploy
+            git checkout main && git pull origin main
+            sudo docker compose -f docker-compose.yml up --build -d 
+            sudo docker image prune -f
+            echo 'Deployment successful!'
