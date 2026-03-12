@@ -12,10 +12,10 @@ permissions:
   id-token: write
 
 env:
-  PROJECT_ID: your-gcp-project-id
-  REGION: us-central1
-  SERVICE_NAME: my-app
-  REGISTRY: us-central1-docker.pkg.dev
+  PROJECT_ID: api-deployment-489815
+  REGION: europe-north2
+  SERVICE_NAME: fastapi-demo
+  REGISTRY: europe-north2-docker.pkg.dev
   REPOSITORY: cloud-run-images
 
 jobs:
