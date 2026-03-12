@@ -1,24 +1,74 @@
-name: Build & Deploy
+# .github/workflows/deploy.yml - Deploy to Cloud Run on push to main
+name: Deploy to Cloud Run
+
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+
+# Required for Workload Identity Federation
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: your-gcp-project-id
+  REGION: us-central1
+  SERVICE_NAME: my-app
+  REGISTRY: us-central1-docker.pkg.dev
+  REPOSITORY: cloud-run-images
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy FastAPI App
-        uses: appleboy/ssh-action@master
+      # Check out the repository code
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Authenticate to GCP using Workload Identity Federation
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
         with:
-          host: ${{ secrets.SSH_HOST }} # IP address of the server you wish to ssh into
-          key: ${{ secrets.SSH_KEY }} # Private or public key of the server
-          username: ${{ secrets.SSH_USERNAME }} # User of the server you want to ssh into
-          # Ensure you replace {YOUR_REPOSITORY_SSH_URL} with your repository's ssh url
-          script: |
-            mkdir -p github-pipeline
-            cd github-pipeline
-            git clone {YOUR_REPOSITORY_SSH_URL} || true
-            cd fastapi-deploy
-            git checkout main && git pull origin main
-            sudo docker compose -f docker-compose.yml up --build -d 
-            sudo docker image prune -f
-            echo 'Deployment successful!'
+          workload_identity_provider: "projects/123456789/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
+          service_account: "github-deployer@your-gcp-project-id.iam.gserviceaccount.com"
+
+      # Set up gcloud CLI
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      # Configure Docker to use gcloud for authentication
+      - name: Configure Docker
+        run: gcloud auth configure-docker ${{ env.REGISTRY }} --quiet
+
+      # Build the Docker image
+      - name: Build
+        run: |
+          docker build \
+            -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+            -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:latest \
+            .
+
+      # Push to Artifact Registry
+      - name: Push
+        run: |
+          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:latest
+
+      # Deploy to Cloud Run
+      - name: Deploy
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image=${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+            --region=${{ env.REGION }} \
+            --platform=managed \
+            --allow-unauthenticated
+
+      # Output the service URL
+      - name: Show URL
+        run: |
+          echo "Service URL:"
+          gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --format="value(status.url)"
