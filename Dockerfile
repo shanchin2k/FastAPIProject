@@ -1,13 +1,16 @@
 FROM python:3.11-slim
 
+# Set the working directory to the root of the container
 WORKDIR /app
 
-# Copy all files
+# Copy everything from your local directory into /app
 COPY . .
 
-# Install the core requirements
+# Install dependencies
 RUN pip install --no-cache-dir fastapi uvicorn
 
-# IMPORTANT: Cloud Run gives us the port via $PORT. 
-# Use the shell form to ensure the $PORT variable is expanded correctly
-CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}
+# Explicitly tell Python where to look for modules
+ENV PYTHONPATH=/app
+
+# Start Uvicorn. The 'main:app' assumes main.py is in the current directory (/app)
+CMD uvicorn main:app --host 0.0.0.0 --port 8080
