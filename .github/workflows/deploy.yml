@@ -42,6 +42,10 @@ jobs:
       - name: Configure Docker
         run: gcloud auth configure-docker ${{ env.REGISTRY }} --quiet
 
+      # Debug
+      - name: Debug - List Files
+        run: ls -R
+
       # Build the Docker image
       - name: Build
         run: |
