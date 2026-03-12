@@ -6,6 +6,9 @@ WORKDIR /app
 # Copy everything from your local directory into /app
 COPY . .
 
+# Debug: List all files in the current working directory inside the container
+RUN ls -R /app
+
 # Install dependencies
 RUN pip install --no-cache-dir fastapi uvicorn
 
